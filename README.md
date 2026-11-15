@@ -200,7 +200,7 @@ If you use SalmonTElocus, please cite it with its Zenodo DOI:
 | DOI | Use |
 |---|---|
 | [10.5281/zenodo.24238050](https://doi.org/10.5281/zenodo.24238050) | **All versions.** Always resolves to the latest release; use this to cite the tool in general |
-| [10.5281/zenodo.24238068](https://doi.org/10.5281/zenodo.24238068) | **v1.0.2 only.** Use this when a methods section must name the exact version used |
+| [10.5281/zenodo.24238618](https://doi.org/10.5281/zenodo.24238618) | **v1.0.3 only.** Use this when a methods section must name the exact version used |
 
 Every later release gets its own version DOI on
 [Zenodo](https://doi.org/10.5281/zenodo.24238050). GitHub's "Cite this
