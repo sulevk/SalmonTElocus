@@ -1,0 +1,69 @@
+cff-version: 1.2.0
+message: >-
+  If you use SalmonTElocus, please cite it using the metadata below, and also
+  cite SalmonTE and Salmon (see references).
+title: "SalmonTElocus: per-locus transposable element quantification with Salmon"
+abstract: >-
+  SalmonTElocus quantifies transposable elements (TEs) from RNA-seq at the
+  level of individual genomic copies. It is a rewrite of SalmonTE that indexes
+  every TE copy cut from the genome, reports per-locus and per-subfamily
+  counts with genomic coordinates, optionally labels copies by gene context
+  (exon/intron/intergenic) without counting genes, and runs DESeq2 with
+  TE- or gene-based size factors.
+type: software
+authors:
+  - family-names: Koks
+    given-names: Sulev
+    # orcid: "https://orcid.org/0000-0000-0000-0000"
+version: 1.0.1
+date-released: "2026-11-15"
+license: GPL-3.0-only
+repository-code: "https://github.com/sulevk/SalmonTElocus"
+keywords:
+  - transposable elements
+  - RNA-seq
+  - Salmon
+  - repeat expression
+  - bioinformatics
+references:
+  - type: conference-paper
+    title: >-
+      An ultra-fast and scalable quantification pipeline for transposable
+      elements from next generation sequencing data
+    authors:
+      - family-names: Jeong
+        given-names: Hyun-Hwan
+      - family-names: Yalamanchili
+        given-names: Hari Krishna
+      - family-names: Guo
+        given-names: Caiwei
+      - family-names: Shulman
+        given-names: Joshua M.
+      - family-names: Liu
+        given-names: Zhandong
+    collection-title: Pacific Symposium on Biocomputing
+    volume: 23
+    start: 168
+    end: 179
+    year: 2018
+    doi: 10.1142/9789813235533_0016
+  - type: article
+    title: Salmon provides fast and bias-aware quantification of transcript expression
+    authors:
+      - family-names: Patro
+        given-names: Rob
+      - family-names: Duggal
+        given-names: Geet
+      - family-names: Love
+        given-names: Michael I.
+      - family-names: Irizarry
+        given-names: Rafael A.
+      - family-names: Kingsford
+        given-names: Carl
+    journal: Nature Methods
+    volume: 14
+    issue: 4
+    start: 417
+    end: 419
+    year: 2017
+    doi: 10.1038/nmeth.4197
