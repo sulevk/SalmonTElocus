@@ -14,7 +14,7 @@ type: software
 authors:
   - family-names: Koks
     given-names: Sulev
-    # orcid: "https://orcid.org/0000-0000-0000-0000"
+    orcid: "https://orcid.org/0000-0001-6087-6643"
 version: 1.0.1
 date-released: "2026-11-15"
 license: GPL-3.0-only
