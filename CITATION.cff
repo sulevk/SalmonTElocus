@@ -18,6 +18,7 @@ authors:
 version: 1.0.2
 date-released: "2026-11-15"
 license: GPL-3.0-only
+doi: 10.5281/zenodo.24238050
 repository-code: "https://github.com/sulevk/SalmonTElocus"
 keywords:
   - transposable elements

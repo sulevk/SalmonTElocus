@@ -1,5 +1,7 @@
 # SalmonTElocus
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24238050.svg)](https://doi.org/10.5281/zenodo.24238050)
+
 Per-locus quantification of transposable elements (TEs) from RNA-seq with
 [Salmon](https://github.com/COMBINE-lab/salmon). Every TE copy in the genome
 gets its own count and its genomic coordinates.
@@ -132,6 +134,14 @@ measure TE changes against overall transcription instead, give `test` a
 gene × sample count table. It is used only to compute the size factors; genes
 are still not tested or counted as TEs.
 
+**Recommended for `--level locus`.** DESeq2's size factors use only features
+with reads in every sample. Among millions of sparsely covered TE copies, that
+subset can be strongly skewed. In a testis-vs-liver test (8 vs 6 samples,
+E-MTAB-2836), TE-based locus size factors inflated testis fold changes by
+1.7× (0.75 log2) compared with gene-based ones. At subfamily level the two
+agreed within 0.19 log2. `test --level locus` prints a warning when run
+without `--gene-counts`.
+
 ```sh
 # gene counts from a separate Salmon run against a transcriptome (e.g. GENCODE)
 salmon index -t gencode.v49.transcripts.fa -i gencode_index -p 8
@@ -180,9 +190,26 @@ things: coordinates, minus-strand copies, an even split between identical
 copies, subfamily sums, and a known 2× change recovered by DESeq2. They are
 skipped if Salmon (or R/DESeq2) is not installed.
 
-## Citation and licence
+## How to cite
 
-Built on SalmonTE. If you use this tool, please cite:
+If you use SalmonTElocus, please cite it with its Zenodo DOI:
+
+> Koks, S. SalmonTElocus: per-locus transposable element quantification with
+> Salmon. Zenodo. https://doi.org/10.5281/zenodo.24238050
+
+| DOI | Use |
+|---|---|
+| [10.5281/zenodo.24238050](https://doi.org/10.5281/zenodo.24238050) | **All versions.** Always resolves to the latest release; use this to cite the tool in general |
+| [10.5281/zenodo.24238068](https://doi.org/10.5281/zenodo.24238068) | **v1.0.2 only.** Use this when a methods section must name the exact version used |
+
+Every later release gets its own version DOI on
+[Zenodo](https://doi.org/10.5281/zenodo.24238050). GitHub's "Cite this
+repository" button (from `CITATION.cff`) gives the same reference in APA and
+BibTeX.
+
+## Citation of underlying tools and licence
+
+Built on SalmonTE. Please also cite:
 
 > Jeong, H.-H., Yalamanchili, H. K., Guo, C., Shulman, J. M., & Liu, Z. (2018).
 > An ultra-fast and scalable quantification pipeline for transposable elements

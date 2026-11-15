@@ -500,6 +500,11 @@ def cmd_test(args):
     rscript = shutil.which("Rscript")
     if not rscript:
         die("Rscript not found on PATH")
+    if args.level == "locus" and not args.gene_counts:
+        log.warning("Locus-level test without --gene-counts: size factors come from TE copies "
+                    "expressed in every sample, a subset that can be strongly skewed and bias "
+                    "all fold changes. Gene-based size factors (--gene-counts, see 'gene-table') "
+                    "are recommended at locus level.")
     os.makedirs(args.out, exist_ok=True)
     script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "SalmonTElocus_DE.R")
     if args.gene_counts and not os.path.exists(args.gene_counts):
