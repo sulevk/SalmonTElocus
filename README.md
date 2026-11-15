@@ -179,6 +179,41 @@ TE-based and gene-based factors side by side.
   (about 4.7M copies) has not been benchmarked and will need far more memory,
   so build it on a cluster node.
 
+## Why TEtranscripts, SalmonTE and SalmonTElocus give different answers
+
+The main difference is what each tool compares the reads against.
+[TEtranscripts](https://github.com/mhammell-laboratory/TEtranscripts) starts
+from a genome alignment (for example from STAR) and counts genes and TEs
+together. A read that falls uniquely in a gene exon goes to the gene. Reads
+that map to many places are split among TE copies by an EM algorithm. Every TE
+copy in the genome can collect reads, including copies in introns and between
+genes. So TEtranscripts' TE counts include a lot of "passenger" signal from
+unspliced pre-mRNA and from transcripts that run through a TE. SalmonTE never
+looks at the genome or at genes. It maps reads straight to one consensus
+sequence per TE subfamily. Any read that looks like a TE is counted as TE,
+even one from a TE fragment in the exon or UTR of an ordinary mRNA, because no
+gene competes for it. Its counts also depend on how closely a read matches the
+consensus. Young, low-divergence families (L1HS, AluY, SVA, HERVK) map well.
+Old, highly mutated copies (L2, MIR, ancient LTRs) often fail to map, so
+SalmonTE under-counts them compared with TEtranscripts.
+
+In short, TEtranscripts asks "which genomic TE copies do the leftover reads
+fall on?", and SalmonTE asks "how many reads resemble each TE family?" As a
+result, TEtranscripts gives larger counts for old and intronic TEs, and its
+results track gene expression and intron retention in each tissue. SalmonTE
+weights young families more heavily and includes TE pieces carried inside
+mRNAs. Normalisation widens the gap. SalmonTE's DESeq2 step estimates size
+factors from the TE counts alone, and TEtranscripts estimates them from the
+combined gene + TE table, which is mostly genes. When samples differ in how
+much of their RNA comes from TEs, fold changes for the same family can differ
+between the two tools.
+
+SalmonTElocus sits between the two. Like SalmonTE, it maps reads without
+genes. Like TEtranscripts, it uses the real genomic copies, so old copies map
+and every count has a location. Its `test` command also accepts gene-based
+size factors (`--gene-counts`). Because no genes compete for reads, use
+`--gene-gtf` to see which counted copies lie in exons or introns.
+
 ## Tests
 
 ```sh
