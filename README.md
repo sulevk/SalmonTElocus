@@ -123,6 +123,30 @@ results also carry the gene-context columns, and
 `summary_by_class_and_context_locus.csv` breaks the summary down by
 exon / intron / intergenic.
 
+#### Gene-based normalisation (`--gene-counts`)
+
+By default DESeq2 computes size factors from the TE counts themselves. TE
+changes are then measured *relative to total TE output*, so a tissue that
+expresses more TE RNA overall has that global increase normalised away. To
+measure TE changes against overall transcription instead, give `test` a
+gene × sample count table. It is used only to compute the size factors; genes
+are still not tested or counted as TEs.
+
+```sh
+# gene counts from a separate Salmon run against a transcriptome (e.g. GENCODE)
+salmon index -t gencode.v49.transcripts.fa -i gencode_index -p 8
+salmon quant -i gencode_index -l A -1 S1_R1.fastq.gz -2 S1_R2.fastq.gz -o gene_quant/S1 -p 8   # per sample
+./SalmonTElocus.py gene-table gene_quant/* --out gene_counts.csv     # sums transcripts per gene
+
+./SalmonTElocus.py test --in results --out de_genesf --conditions control,treatment \
+  --gene-counts gene_counts.csv
+```
+
+`gene-table` reads gene IDs from GENCODE FASTA headers (`ENST…|ENSG…|…`). For
+other transcriptomes, pass `--tx2gene transcript,gene`. The sample folder
+names must match the TE sample names. `size_factors_<level>.csv` lists the
+TE-based and gene-based factors side by side.
+
 ## Interpreting per-locus counts
 
 - **Young copies.** Near-identical copies (for example L1HS, AluY, SVA_E/F,

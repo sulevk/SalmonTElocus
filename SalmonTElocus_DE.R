@@ -9,6 +9,7 @@ if (length(args) < 6) stop("usage: SalmonTElocus_DE.R table conditions out level
 table_path <- args[1]; cond_path <- args[2]; out_dir <- args[3]; level <- args[4]
 cond_levels <- if (nzchar(args[5])) strsplit(args[5], ",", fixed = TRUE)[[1]] else NULL
 min_count <- as.numeric(args[6])
+gene_counts_path <- if (length(args) >= 7 && nzchar(args[7])) args[7] else NULL
 
 annot_cols <- if (level == "locus") {
   c("locus_id", "chrom", "start", "end", "strand", "transcript_id", "subfamily", "family", "class", "length",
@@ -55,11 +56,35 @@ counts <- counts[keep, , drop = FALSE]
 
 col_data <- data.frame(condition = cond$condition, row.names = cond$sample)
 dds <- DESeqDataSetFromMatrix(counts, col_data, design = ~ condition)
+sf_te <- sizeFactors(estimateSizeFactors(dds))
+
+if (!is.null(gene_counts_path)) {
+  # Size factors from genes: TE changes are then measured against overall
+  # transcription, so a global rise in TE output is not normalised away.
+  message("Size factors from gene counts: ", gene_counts_path)
+  sep <- if (grepl("\\.tsv(\\.gz)?$|\\.txt(\\.gz)?$", gene_counts_path)) "\t" else ","
+  g <- read.table(gene_counts_path, header = TRUE, sep = sep, row.names = 1,
+                  check.names = FALSE, quote = "\"", comment.char = "")
+  missing <- setdiff(cond$sample, colnames(g))
+  if (length(missing)) stop("Samples missing from ", gene_counts_path, ": ", paste(missing, collapse = ", "))
+  g <- round(as.matrix(g[, cond$sample, drop = FALSE]))
+  g <- g[rowSums(g) > 0, , drop = FALSE]
+  if (nrow(g) < 100) stop("Gene count table has only ", nrow(g), " expressed genes")
+  sf_gene <- estimateSizeFactorsForMatrix(g)
+  sizeFactors(dds) <- sf_gene[colnames(dds)]   # DESeq() keeps size factors that are already set
+  write.csv(data.frame(sample = colnames(dds), condition = as.character(cond$condition),
+                       size_factor_TE = sf_te, size_factor_gene = sf_gene[colnames(dds)]),
+            file.path(out_dir, sprintf("size_factors_%s.csv", level)), row.names = FALSE)
+} else {
+  write.csv(data.frame(sample = colnames(dds), condition = as.character(cond$condition),
+                       size_factor_TE = sf_te),
+            file.path(out_dir, sprintf("size_factors_%s.csv", level)), row.names = FALSE)
+}
 dds <- tryCatch(DESeq(dds, quiet = TRUE), error = function(e) {
   # Too few features to fit a dispersion trend (typical for small or
   # low-coverage data): use gene-wise estimates, as DESeq2 itself advises.
   message("Dispersion trend fit failed; using gene-wise dispersion estimates (", conditionMessage(e), ")")
-  dds <- estimateSizeFactors(dds)
+  if (is.null(sizeFactors(dds))) dds <- estimateSizeFactors(dds)
   dds <- estimateDispersionsGeneEst(dds)
   dispersions(dds) <- mcols(dds)$dispGeneEst
   nbinomWaldTest(dds)

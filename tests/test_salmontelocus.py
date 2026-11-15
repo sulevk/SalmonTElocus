@@ -228,6 +228,47 @@ class TestEndToEnd(unittest.TestCase):
         self.assertAlmostEqual(float(res["L1A_dup1:L1A:L1:LINE"]["log2FoldChange"]), 1.0, delta=0.35)
         self.assertTrue(os.path.exists(os.path.join(de, "summary_by_class_and_context_locus.csv")))
 
+    def test_gene_table(self):
+        qdir = os.path.join(self.tmp, "gq")
+        for s, k in (("ctrl1", 1), ("treat1", 2)):
+            os.makedirs(os.path.join(qdir, s))
+            with open(os.path.join(qdir, s, "quant.sf"), "w") as f:
+                f.write("Name\tLength\tEffectiveLength\tTPM\tNumReads\n")
+                f.write("ENST1|ENSG1|x|x|T1|GENE1|100|pc|\t100\t50\t1\t{}\n".format(10 * k))
+                f.write("ENST2|ENSG1|x|x|T2|GENE1|100|pc|\t100\t50\t1\t{}\n".format(5 * k))
+                f.write("ENST3|ENSG2|x|x|T3|GENE2|100|pc|\t100\t50\t1\t{}\n".format(7 * k))
+        out = os.path.join(self.tmp, "gene_counts.csv")
+        self.sh([SCRIPT, "gene-table", os.path.join(qdir, "ctrl1"), os.path.join(qdir, "treat1"),
+                 "--out", out])
+        rows = {r["gene"]: r for r in read_csv(out)}
+        self.assertEqual(float(rows["ENSG1"]["ctrl1"]), 15)
+        self.assertEqual(float(rows["ENSG2"]["treat1"]), 14)
+
+    @unittest.skipUnless(HAVE_DESEQ2, "Rscript/DESeq2 not available")
+    def test_gene_based_size_factors(self):
+        # Treat samples get 2x the gene counts (twice the sequencing depth), so
+        # with gene-based size factors L1A's 2x rise in TE counts cancels out
+        # and the unchanged AluB comes out at about -1 (half per unit of depth).
+        rng = random.Random(3)
+        genes = os.path.join(self.tmp, "genes.tsv")
+        with open(genes, "w") as f:
+            f.write("gene\tctrl1\tctrl2\ttreat1\ttreat2\n")
+            for i in range(500):
+                base = rng.randint(50, 5000)
+                f.write("G{}\t{}\t{}\t{}\t{}\n".format(i, base, int(base * 1.1), 2 * base, int(2.2 * base)))
+        cond = os.path.join(self.tmp, "cond3.csv")
+        with open(cond, "w") as f:
+            f.write("sample,condition\nctrl1,ctrl\nctrl2,ctrl\ntreat1,treat\ntreat2,treat\n")
+        de = os.path.join(self.tmp, "de_genesf")
+        self.sh([SCRIPT, "test", "--in", self.out, "--out", de, "--conditions", "ctrl,treat",
+                 "--condition-file", cond, "--gene-counts", genes])
+        res = {r["locus_id"]: r for r in read_csv(os.path.join(de, "results_locus.csv"))}
+        self.assertAlmostEqual(float(res["L1A_dup1:L1A:L1:LINE"]["log2FoldChange"]), 0.0, delta=0.35)
+        self.assertAlmostEqual(float(res["AluB_dup1:AluB:Alu:SINE"]["log2FoldChange"]), -1.0, delta=0.35)
+        sf = {r["sample"]: r for r in read_csv(os.path.join(de, "size_factors_locus.csv"))}
+        ratio = float(sf["treat1"]["size_factor_gene"]) / float(sf["ctrl1"]["size_factor_gene"])
+        self.assertAlmostEqual(ratio, 2.0, delta=0.05)
+
     @unittest.skipUnless(HAVE_DESEQ2, "Rscript/DESeq2 not available")
     def test_differential_expression(self):
         cond = os.path.join(self.tmp, "cond.csv")

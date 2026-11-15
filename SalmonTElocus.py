@@ -502,9 +502,44 @@ def cmd_test(args):
         die("Rscript not found on PATH")
     os.makedirs(args.out, exist_ok=True)
     script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "SalmonTElocus_DE.R")
+    if args.gene_counts and not os.path.exists(args.gene_counts):
+        die("Gene count table %s not found", args.gene_counts)
     cmd = [rscript, script, table, cond, args.out, args.level, args.conditions or "",
-           str(args.min_count)]
+           str(args.min_count), args.gene_counts or ""]
     run_cmd(cmd)
+
+
+def cmd_gene_table(args):
+    """Sum Salmon NumReads per gene across sample folders -> gene x sample CSV,
+    for `test --gene-counts`. Genes are never part of the TE quantification."""
+    import pandas as pd
+    tx2gene = None
+    if args.tx2gene:
+        t = pd.read_csv(args.tx2gene, sep=None, engine="python", header=None, dtype=str)
+        tx2gene = dict(zip(t.iloc[:, 0], t.iloc[:, 1]))
+    cols = {}
+    for d in sorted(args.quant_dirs):
+        qf = os.path.join(d, "quant.sf")
+        if not os.path.exists(qf):
+            log.warning("No quant.sf in %s, skipped", d)
+            continue
+        q = pd.read_csv(qf, sep="\t", usecols=["Name", "NumReads"])
+        if tx2gene is not None:
+            gene = q["Name"].map(tx2gene)
+            if gene.isna().all():
+                die("No transcript in %s matched --tx2gene", qf)
+            gene = gene.fillna(q["Name"])
+        elif q["Name"].str.contains("|", regex=False).any():
+            gene = q["Name"].str.split("|").str[1]  # GENCODE: ENST|ENSG|...
+        else:
+            die("%s: transcript names carry no gene ID; pass --tx2gene", qf)
+        cols[os.path.basename(os.path.normpath(d))] = q.groupby(gene)["NumReads"].sum()
+    if not cols:
+        die("No Salmon results found")
+    tab = pd.DataFrame(cols).fillna(0.0)
+    tab.index.name = "gene"
+    tab.to_csv(args.out)
+    log.info("Wrote %d genes x %d samples to %s", tab.shape[0], tab.shape[1], args.out)
 
 
 # --------------------------------------------------------------------------
@@ -558,7 +593,18 @@ def build_parser():
     t.add_argument("--condition-file", help="CSV sample,condition [<in>/conditions.csv]")
     t.add_argument("--min-count", type=int, default=10,
                    help="drop features with fewer total reads than this [10]")
+    t.add_argument("--gene-counts",
+                   help="gene x sample count table (CSV/TSV, first column gene ID, e.g. from "
+                        "'gene-table'): DESeq2 size factors are computed from genes instead of TEs, "
+                        "so global TE increases are not normalised away")
     t.set_defaults(func=cmd_test)
+
+    g = sub.add_parser("gene-table",
+                       help="gene x sample counts from Salmon transcriptome runs (for test --gene-counts)")
+    g.add_argument("quant_dirs", nargs="+", help="Salmon output folders, one per sample (folder name = sample)")
+    g.add_argument("--out", required=True, help="output CSV")
+    g.add_argument("--tx2gene", help="2-column transcript,gene file (not needed for GENCODE FASTA headers)")
+    g.set_defaults(func=cmd_gene_table)
     return p
 
 
